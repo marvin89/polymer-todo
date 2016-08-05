@@ -149,7 +149,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         </app-drawer-layout>
 
-        <core-pubnub publish_key="pub-c-c361e8eb-0d12-4371-a8db-52c1b067801e" subscribe_key="sub-c-fb8576ac-5b18-11e6-ab7c-0619f8945a4f">
+        <core-pubnub origin="pubsub.pubnub.com" ssl="true" publish_key="pub-c-c361e8eb-0d12-4371-a8db-52c1b067801e" subscribe_key="sub-c-fb8576ac-5b18-11e6-ab7c-0619f8945a4f">
             <core-pubnub-publish id="pub" channel="todo" message="To-Do"></core-pubnub-publish>
             <core-pubnub-subscribe id="sub" channel="todo" messages="{{messages}}" presence="{{present}}" on-callback="subscribeCallback"></core-pubnub-subscribe>
         </core-pubnub>
