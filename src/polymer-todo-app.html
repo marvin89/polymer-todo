@@ -1,0 +1,258 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-material/paper-material.html">
+
+<link rel="import" href="./elements/todo-element.html">
+<link rel="import" href="../bower_components/pubnub-element/pubnub-element.html">
+
+<dom-module id="polymer-todo-app">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+                --app-primary-color: var(--paper-blue-500);
+                --app-secondary-color: black;
+            }
+
+            app-header {
+                background-color: var(--app-primary-color);
+                color: #fff;
+            }
+
+            app-header paper-icon-button {
+                --paper-icon-button-ink-color: white;
+            }
+
+            .drawer-list {
+                margin: 0 20px;
+            }
+
+            .drawer-list a {
+                display: block;
+                padding: 0 16px;
+                line-height: 40px;
+                text-decoration: none;
+                color: var(--app-secondary-color);
+            }
+
+            paper-card {
+                display: block;
+            }
+
+            paper-button.blue {
+                background-color: var(--paper-blue-500);
+                color: white;
+            }
+
+            paper-input {
+                --paper-input-container-color: var(--paper-blue-500);
+                --paper-input-container-focus-color: var(--paper-blue-700);
+                --paper-input-container-invalid-color: var(--paper-red-700);
+            }
+
+            paper-item {
+                margin-top: 2rem;
+                background-color: white;
+            }
+
+            .todo--new {
+                padding: 2rem;
+            }
+
+            .todo--new .card-actions {
+                padding: 10px 5px;
+                text-align: right;
+            }
+
+            .user__indicator {
+                background-color: transparent;
+                margin-top: 0;
+            }
+        </style>
+
+        <app-drawer-layout fullbleed>
+
+            <!-- Drawer content -->
+            <app-drawer>
+                <app-toolbar>Completed Tasks</app-toolbar>
+
+                <div class="todo--completed">
+                    <template is="dom-if" if="{{!done.length}}">
+                        <paper-item>Completed tasks will appear here!</paper-item>
+                    </template>
+                </div>
+            </app-drawer>
+
+            <!-- Main content -->
+            <app-header-layout has-scrolling-region>
+
+                <app-header condenses reveals effects="waterfall">
+                    <app-toolbar>
+                        <paper-icon-button icon="icons:menu" drawer-toggle>Menu</paper-icon-button>
+                        <div title>To Do</div>
+                        <paper-item class="user__indicator">
+                            <iron-icon icon="icons:face"></iron-icon>
+                            <span id="here">0</span>
+                        </paper-item>
+                    </app-toolbar>
+                </app-header>
+
+                <div class="todo--new">
+                    <paper-card heading="New task">
+                        <div class="card-content">
+                            <paper-input id="tUser" required auto-validate char-counter error-message="Username is required" label="Username" maxlength="16"></paper-input>
+                            <paper-input id="tTask" required auto-validate char-counter error-message="Task description is required" label="Task description" maxlength="64"></paper-input>
+                        </div>
+                        <div class="card-actions">
+                            <paper-button raised class="blue" on-tap="postTask">
+                                <iron-icon icon="icons:add"></iron-icon>
+                                Add task
+                            </paper-button>
+                        </div>
+                    </paper-card>
+
+                    <template is="dom-if" if="{{!todo.length}}">
+                        <paper-material>
+                            <paper-item>No Tasks remain. Updates are Real-Time so stay tuned!</paper-item>
+                        </paper-material>
+                    </template>
+
+                    <template id="tasks" is="dom-repeat" items="{{todo}}">
+                        <todo-element user="{{item.user}}" task="{{item.task}}" rid="{{item.rid}}"></todo-element>
+                    </template>
+
+                </div>
+
+            </app-header-layout>
+
+        </app-drawer-layout>
+
+        <core-pubnub publish_key="pub-c-c361e8eb-0d12-4371-a8db-52c1b067801e" subscribe_key="sub-c-fb8576ac-5b18-11e6-ab7c-0619f8945a4f">
+            <core-pubnub-publish id="pub" channel="todo" message="To-Do"></core-pubnub-publish>
+            <core-pubnub-subscribe id="sub" channel="todo" messages="{{messages}}" presence="{{present}}" on-callback="subscribeCallback"></core-pubnub-subscribe>
+        </core-pubnub>
+
+    </template>
+
+    <script>
+        Polymer({
+
+            is: 'polymer-todo-app',
+
+            properties: {
+                todo: {
+                    type: Array,
+                    value: []
+                },
+                done: {
+                    type: Array,
+                    value: []
+                },
+                messages: {
+                    type: Array,
+                    value: []
+                },
+                present: {
+                    type: Array,
+                    value: []
+                }
+            },
+            postTask: function(e) {
+                var task = this.$.tTask.value;
+                var user = this.$.tUser.value;
+
+                if (!task) {
+                    alert('Task is empty!');
+                    return;
+                }
+
+                if (!user) {
+                    user = 'Anonymous';
+                }
+
+                this.$.tTask.value = '';
+
+                this.$.pub.message = {
+                    type: 'todo',
+                    task: task,
+                    user: user,
+                    rid: randId()
+                };
+
+                this.$.pub.publish();
+            },
+            handleComplete: function(e) {
+                var idx = findWithAttr(this.todo, 'rid', e.target.rid);
+                var item = this.todo[idx];
+                item.task = e.target.task;
+                item.user = this.$.tUser.value;
+                item.type = 'done';
+
+                this.$.pub.message = item;
+                this.$.pub.publish();
+            },
+            ready: function(e) {
+                this.addEventListener('complete', this.handleComplete);
+                this.addEventListener('presence', presChange);
+            },
+            subscribeCallback: function(e) {
+                while(this.messages.length > 0){ // Get all messages
+                    var item = this.messages.pop();
+                    switch(item.type){
+                        case "todo":
+                            this.unshift('todo', {task:item.task, user:item.user, rid:item.rid});
+                            break;
+                        case "done":
+                            var idx = findWithAttr(this.todo, 'rid',item.rid);
+                            var itm = this.splice('todo', idx, 1)[0];
+                            itm.task = item.task;
+                            itm.user = item.user;
+                            this.push('done',itm);
+                            break;
+                        default:
+                            continue;
+                    }
+                }
+            }
+
+        });
+
+        function randId() {
+            return Math.floor(Math.random() * 10000);
+        }
+
+        function findWithAttr(array, attr, value) {
+            for (var i = 0; i < array.length; i++) {
+                if (array[i][attr] === value) return i;
+            }
+        }
+
+        function presChange(e){
+            var pres = this.present.pop()
+            this.$.here.innerHTML = pres.occupancy;
+        }
+    </script>
+
+</dom-module>
