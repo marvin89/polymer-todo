@@ -1,0 +1,76 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+
+<dom-module id="add-todo-element">
+    <template>
+        <style>
+            paper-card {
+                display: block;
+            }
+
+            paper-input {
+                --paper-input-container-color: var(--paper-blue-500);
+                --paper-input-container-focus-color: var(--paper-blue-700);
+                --paper-input-container-invalid-color: var(--paper-red-700);
+            }
+        </style>
+
+        <paper-card heading="New task" elevation="0">
+            <div class="card-content">
+                <paper-input id="tUser" required auto-validate char-counter error-message="Username is required" label="Username" maxlength="16"></paper-input>
+                <paper-input id="tTask" required auto-validate char-counter error-message="Task description is required" label="Task description" maxlength="64"></paper-input>
+            </div>
+        </paper-card>
+    </template>
+</dom-module>
+
+<script>
+    Polymer({
+
+        is: 'add-todo-element',
+
+        properties: {
+
+        },
+
+        // listeners: {
+        //     'todo:add': 'addTodo'
+        // },
+
+        addTodo: function(e) {
+            var newTodo = {
+                user: this.$.tUser.value,
+                task: this.$.tTask.value,
+                rid: randId(),
+                time: new Date().toLocaleString(),
+                completed: false
+            };
+
+            if (!newTodo.task) {
+                alert('Task is empty!');
+                return;
+            }
+
+            if (!newTodo.user) {
+                newTodo.user = 'Anonymous';
+            }
+
+            this.$.tTask.value = '';
+
+            document.querySelector('polymer-todo-app').fire('todo:added', newTodo);
+        },
+
+        ready: function(e) {
+            this.addEventListener('todo:add', this.addTodo);
+        }
+    });
+
+    function randId() {
+        return Math.floor(Math.random() * 10000);
+    }
+</script>
